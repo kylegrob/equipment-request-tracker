@@ -181,6 +181,19 @@ button:hover {
   background: var(--purple-dark);
 }
 
+button.secondary-button {
+  min-height: 40px;
+  padding: 0.55rem 0.8rem;
+  color: var(--purple-dark);
+  background: var(--purple-light);
+  border: 1px solid var(--purple);
+}
+
+button.secondary-button:hover {
+  color: #fff;
+  background: var(--purple);
+}
+
 .form-message {
   margin: 0;
   color: var(--success);
@@ -316,3 +329,4 @@ tbody tr:hover {
     align-self: flex-start;
   }
 }
+

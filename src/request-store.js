@@ -1,5 +1,7 @@
 export const STORAGE_KEY = "mis4173-equipment-requests";
+export const HANDLED_REQUESTS_KEY = `${STORAGE_KEY}-handled`;
 export const PRIORITIES = ["Low", "Normal", "High"];
+const PRIORITY_ORDER = ["High", "Normal", "Low"];
 
 export class RequestValidationError extends Error {
   constructor(errors) {
@@ -64,6 +66,22 @@ export function appendRequest(requests, request) {
   return [request, ...requests];
 }
 
+export function getActiveRequests(requests, handledRequestIds = new Set()) {
+  return requests
+    .filter((request) => !handledRequestIds.has(request.id))
+    .sort((first, second) => {
+      const priorityDifference =
+        PRIORITY_ORDER.indexOf(first.priority) - PRIORITY_ORDER.indexOf(second.priority);
+      if (priorityDifference !== 0) return priorityDifference;
+      return first.neededBy.localeCompare(second.neededBy);
+    });
+}
+
+export function markRequestHandled(handledRequestIds, requestId) {
+  if (handledRequestIds.has(requestId)) return handledRequestIds;
+  return new Set([...handledRequestIds, requestId]);
+}
+
 export function loadRequests(storage = globalThis.localStorage) {
   if (!storage) return [];
 
@@ -85,6 +103,27 @@ export function loadRequests(storage = globalThis.localStorage) {
 export function saveRequests(requests, storage = globalThis.localStorage) {
   if (!storage) return;
   storage.setItem(STORAGE_KEY, JSON.stringify(requests));
+}
+
+export function loadHandledRequestIds(storage = globalThis.localStorage) {
+  if (!storage) return new Set();
+
+  try {
+    const stored = storage.getItem(HANDLED_REQUESTS_KEY);
+    if (!stored) return new Set();
+
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed)
+      ? new Set(parsed.filter((requestId) => typeof requestId === "string"))
+      : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function saveHandledRequestIds(handledRequestIds, storage = globalThis.localStorage) {
+  if (!storage) return;
+  storage.setItem(HANDLED_REQUESTS_KEY, JSON.stringify([...handledRequestIds]));
 }
 
 function isRequestRecord(value) {

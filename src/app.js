@@ -2,7 +2,11 @@ import {
   RequestValidationError,
   appendRequest,
   createRequest,
+  getActiveRequests,
+  loadHandledRequestIds,
   loadRequests,
+  markRequestHandled,
+  saveHandledRequestIds,
   saveRequests,
 } from "./request-store.js";
 
@@ -13,8 +17,10 @@ const count = document.querySelector("#request-count");
 const emptyState = document.querySelector("#empty-state");
 const tableWrapper = document.querySelector("#request-table-wrapper");
 const tableBody = document.querySelector("#request-table-body");
+const listMessage = document.querySelector("#list-message");
 
 let requests = loadRequests();
+let handledRequestIds = loadHandledRequestIds();
 
 neededByInput.min = new Date().toISOString().slice(0, 10);
 renderRequests();
@@ -48,11 +54,12 @@ form.addEventListener("submit", (event) => {
 });
 
 function renderRequests() {
-  const hasRequests = requests.length > 0;
-  count.textContent = `${requests.length} ${requests.length === 1 ? "request" : "requests"}`;
+  const activeRequests = getActiveRequests(requests, handledRequestIds);
+  const hasRequests = activeRequests.length > 0;
+  count.textContent = `${activeRequests.length} active ${activeRequests.length === 1 ? "request" : "requests"}`;
   emptyState.hidden = hasRequests;
   tableWrapper.hidden = !hasRequests;
-  tableBody.replaceChildren(...requests.map(createRequestRow));
+  tableBody.replaceChildren(...activeRequests.map(createRequestRow));
 }
 
 function createRequestRow(request) {
@@ -73,7 +80,45 @@ function createRequestRow(request) {
     row.append(cell);
   }
 
+  const actionCell = document.createElement("td");
+  const handleButton = document.createElement("button");
+  handleButton.type = "button";
+  handleButton.className = "secondary-button";
+  handleButton.textContent = "Mark handled";
+  handleButton.setAttribute(
+    "aria-label",
+    `Mark ${request.equipment} request from ${request.requester} as handled`,
+  );
+  handleButton.addEventListener("click", () => handleRequest(request.id));
+  actionCell.append(handleButton);
+  row.append(actionCell);
+
   return row;
+}
+
+function handleRequest(requestId) {
+  const activeRequests = getActiveRequests(requests, handledRequestIds);
+  const handledIndex = activeRequests.findIndex((request) => request.id === requestId);
+  const request = activeRequests[handledIndex];
+  if (!request) return;
+
+  const previousHandledRequestIds = handledRequestIds;
+  handledRequestIds = markRequestHandled(handledRequestIds, requestId);
+  try {
+    saveHandledRequestIds(handledRequestIds);
+  } catch (error) {
+    handledRequestIds = previousHandledRequestIds;
+    setListMessage("The request could not be marked handled. Try again.");
+    console.error(error);
+    return;
+  }
+
+  renderRequests();
+  setListMessage(`${request.equipment} request marked handled.`);
+  const buttons = tableBody.querySelectorAll("button");
+  const nextButton = buttons[Math.min(handledIndex, buttons.length - 1)];
+  if (nextButton) nextButton.focus();
+  else emptyState.querySelector("h3").focus();
 }
 
 function formatDate(value) {
@@ -110,3 +155,8 @@ function setMessage(text, isError = false) {
   message.textContent = text;
   message.classList.toggle("error", isError);
 }
+
+function setListMessage(text) {
+  listMessage.textContent = text;
+}
+

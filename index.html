@@ -103,14 +103,16 @@
           <p id="request-count" class="request-count">0 requests</p>
         </div>
 
+        <p id="list-message" class="sr-only" role="status" aria-live="polite"></p>
+
         <div id="empty-state" class="empty-state">
-          <h3>No requests yet</h3>
-          <p>Add the first equipment request using the form.</p>
+          <h3 tabindex="-1">No requests need attention</h3>
+          <p>New unhandled equipment requests will appear here.</p>
         </div>
 
         <div id="request-table-wrapper" class="table-wrapper" hidden>
           <table>
-            <caption class="sr-only">Submitted equipment requests</caption>
+            <caption class="sr-only">Active unhandled equipment requests</caption>
             <thead>
               <tr>
                 <th scope="col">Requester</th>
@@ -120,6 +122,7 @@
                 <th scope="col">Needed by</th>
                 <th scope="col">Business reason</th>
                 <th scope="col">Submitted</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody id="request-table-body"></tbody>
@@ -137,3 +140,4 @@
     <script type="module" src="src/app.js"></script>
   </body>
 </html>
+
