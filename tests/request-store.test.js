@@ -84,6 +84,31 @@ test("createRequest reports missing required fields", () => {
   );
 });
 
+test("createRequest accepts real calendar dates and rejects malformed or impossible dates", () => {
+  for (const neededBy of ["2024-02-29", "2000-02-29"]) {
+    assert.equal(createRequest({ ...validInput, neededBy }).neededBy, neededBy);
+  }
+
+  for (const neededBy of [
+    "1900-02-29",
+    "2026-02-29",
+    "2026-04-31",
+    "2026-13-01",
+    "2026-2-03",
+    "0000-01-01",
+  ]) {
+    assert.throws(
+      () => createRequest({ ...validInput, neededBy }),
+      (error) => {
+        assert.ok(error instanceof RequestValidationError);
+        assert.equal(error.errors.neededBy, "Enter a valid needed-by date.");
+        return true;
+      },
+      `expected ${neededBy} to be rejected`,
+    );
+  }
+});
+
 test("appendRequest returns a new list with the newest request first", () => {
   const original = [{ id: "old" }];
   const result = appendRequest(original, { id: "new" });
@@ -129,6 +154,27 @@ test("loadRequests safely handles damaged stored data", () => {
   storage.setItem(STORAGE_KEY, "not-json");
 
   assert.deepEqual(loadRequests(storage), []);
+});
+
+test("invalid saved dates stay stored but are left out of the active list", () => {
+  const storage = new MemoryStorage();
+  const invalidDateRequest = {
+    ...createRequest(validInput, { id: "invalid-date" }),
+    neededBy: "2026-02-30",
+  };
+  const validRequest = createRequest({ ...validInput, neededBy: "2026-03-01" }, {
+    id: "valid-date",
+  });
+  const savedRecords = [invalidDateRequest, validRequest];
+  storage.setItem(STORAGE_KEY, JSON.stringify(savedRecords));
+
+  const requests = loadRequests(storage);
+
+  assert.deepEqual(requests, savedRecords);
+  assert.deepEqual(getActiveRequests(requests).map((request) => request.id), ["valid-date"]);
+
+  saveRequests(requests, storage);
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)), savedRecords);
 });
 
 test("getActiveRequests excludes handled IDs and sorts by priority and needed-by date stably", () => {

@@ -16,7 +16,7 @@ const types = {
 const server = createServer((request, response) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
   const relativePath = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, "");
-  const requestedPath = join(root, relativePath === "/" ? "index.html" : relativePath);
+  const requestedPath = join(root, pathname === "/" ? "index.html" : relativePath);
 
   if (!requestedPath.startsWith(root) || !existsSync(requestedPath) || statSync(requestedPath).isDirectory()) {
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });

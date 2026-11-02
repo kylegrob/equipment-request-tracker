@@ -26,7 +26,11 @@ export function validateRequest(input = {}) {
   if (!clean(input.requester)) errors.requester = "Enter the requester name.";
   if (!clean(input.department)) errors.department = "Select a department.";
   if (!clean(input.equipment)) errors.equipment = "Enter the equipment needed.";
-  if (!clean(input.neededBy)) errors.neededBy = "Select the date needed.";
+  if (!clean(input.neededBy)) {
+    errors.neededBy = "Select the date needed.";
+  } else if (!isValidNeededBy(input.neededBy)) {
+    errors.neededBy = "Enter a valid needed-by date.";
+  }
   if (!clean(input.reason)) errors.reason = "Enter a business reason.";
 
   const priority = clean(input.priority);
@@ -68,7 +72,9 @@ export function appendRequest(requests, request) {
 
 export function getActiveRequests(requests, handledRequestIds = new Set()) {
   return requests
-    .filter((request) => !handledRequestIds.has(request.id))
+    .filter(
+      (request) => isValidNeededBy(request.neededBy) && !handledRequestIds.has(request.id),
+    )
     .sort((first, second) => {
       const priorityDifference =
         PRIORITY_ORDER.indexOf(first.priority) - PRIORITY_ORDER.indexOf(second.priority);
@@ -139,5 +145,16 @@ function isRequestRecord(value) {
     typeof value.reason === "string" &&
     typeof value.createdAt === "string"
   );
+}
+
+function isValidNeededBy(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 1 || month < 1 || month > 12) return false;
+
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= daysInMonth[month - 1];
 }
 
